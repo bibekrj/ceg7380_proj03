@@ -85,9 +85,9 @@ function getCurrentBest {
 
 function guessPicklefileSetup {
     #initial Guess PickleFIle to fry
-    scp $2  ${fry}:
+    scp $1  ${fry}:
   
-    scp $2  ${owens}:
+    scp $1  ${owens}:
 
     #scp -i ~w140bxj/.ssh/labsuser.pem $2 ${aws}: 
 
@@ -132,6 +132,7 @@ fi
 
 #===========================main program loop ============
 while [ ! -f "TERMINATE" ]
+bestDistance=`ssh ${owens} "source ~nehrbajo/proj03data/update03.sh $1" `
 do
     if [ -f "SAVEDSTATE" ]; then
 	#load starting val, ending val for number of batches from the saved state file
@@ -153,14 +154,75 @@ do
             #program loop for when we have saved values
         done
     else
+        #sending pickle files
+
+        guessPicklefileSetup $2
+
         for ((i=0; i<$5; i++));
             do
-                #main program loop here
+                #main program loop if no previous run
                 fryFileName=fryJob$i.sbatch 
                 owensFileName=owensJob$i.sbatch
                 sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > $fryFileName
-                sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > $owensFileName
+                #sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > $owensFileName
+                
+                scp $fryFileName  ${fry}:
+                # scp $owensFileName ${owens}:
 
+                ssh ${fry} "sbatch $fryFileName"
+                # ssh ${owens} "sbatch $owensFileName"
+
+                fryFinished="STARTED"
+                while :
+                        do
+                            echo 'got inside the fryfinished loop'
+                            fryFinished=`ssh ${fry} "ls attempt$i/ | grep "FINISHED" "` 
+                            echo 'sleeping'
+                            echo '*******************'
+                            echo '****************'
+                            echo '************'
+                            sleep 10m
+                            echo 'awake'
+                            echo '********************'
+                            if [ $fryFinished == "FINISHED" ]; then
+                                break
+                            else
+                                fryFinished="STARTED"
+                            fi
+                        done
+                echo "FRY FINISHED $i"
+                if [ "$fryFinished" == "FINISHED" ]; then
+                    echo '********************************'
+                    echo 'about to copy file from remote to local for comparuing'
+                    
+                    scp ${fry}:attempt$i/'best_'$i'_detail.txt' .\
+
+                    echo '*********************************'
+                    echo 'trying to read from the downloaded file'
+                    bestrunfromFry=`cat 'best_'$i'_detail.txt' | head -n 1`
+
+                    echo '*********************************'
+                    echo 'the best distance on fry is'
+                    echo $bestrunfromFry
+                    
+                    
+
+                    echo '*********************************'
+                    echo 'the current best distance is'
+                    echo $bestDistance
+
+                    if [ $bestrunfromFry -lt $bestDistance ]; then
+                        echo 'FOUND'
+                        echo 'bestrun from fry is '$bestrunfromFry''
+                        echo 'current best distance is '$bestDistance'' 
+                    
+                    else
+                        echo '********************'
+                        echo 'NOMAS'
+                        echo 'bestrun from fry is '$bestrunfromFry''
+                        echo 'current best distance is '$bestDistance''
+                    fi
+                fi
 
             done
             
