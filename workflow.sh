@@ -133,14 +133,16 @@ fi
 #===========================main program loop ============
 while [ ! -f "TERMINATE" ]
 do
-    if [ ! -f "SAVEDSTATE"]; then
+    if [ -f "SAVEDSTATE" ]; then
 	#load starting val, ending val for number of batches from the saved state file
     #randomSeed Val
     #nofOf Trys
 
     
         for (( i=$StartVal; i<$endVal; i++ ));
+        #for ((i=0; i<$5; i++));
             do
+            echo 'doing nothing'
             #echo $(( $i+1 ))
             #if [ $(( $i+1 )) -eq 300 ]; then
             #    touch TERMINATE
@@ -154,13 +156,14 @@ do
         for ((i=0; i<$5; i++));
             do
                 #main program loop here
-                fryFilename= fryJob$i 
-                owensFileName= owensJob$i
-                sed -e 's/MYATTEMPT/$i/g' -e 's/MYDIR/attempt$i/g' -e 's/DISTANCEPICKLENUMBER/$1/g' -e 's/PICKLEFILENAME/$2/g' -e 's/RANDSEED/$3/g' -e 's/NOOFTRYS/$4/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > ${fryFilename}.sbatch
-                sed -e 's/MYATTEMPT/$i/g' -e 's/MYDIR/attempt$i/g' -e 's/DISTANCEPICKLENUMBER/$1/g' -e 's/PICKLEFILENAME/$2/g' -e 's/RANDSEED/$3/g' -e 's/NOOFTRYS/$4/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > ${owensFilename}.sbatch
+                fryFileName=fryJob$i 
+                owensFileName=owensJob$i
+                sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > $fryFileName.sbatch
+                sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > $owensFileName.sbatch
             done
             
     fi
+    break
     
 done
 
