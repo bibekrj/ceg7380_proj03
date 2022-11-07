@@ -1,0 +1,166 @@
+#!/usr/bin/bash
+# name: Bibek Raj Joshi
+# wNumber: w140bxj
+# Project Name: Proj03
+# Assigned : Oct 20
+# Due Date : Nov 04
+# Tested on: fry
+fry='w140bxj@fry.cs.wright.edu'
+owens='w140bxj@owens.osc.edu'
+aws='ubuntu@34.235.48.146'
+
+#awspemfilepath = '-i ~w140bxj/.ssh/labsuser.pem'
+
+#params needed for the program to run
+# $1 weighttype
+# $2 initialGuess.pickle
+# $3 randseed
+# $4 no of trys
+# $5 no of batch jobs
+
+#ssh ${fry} "pwd"
+#ssh ${owens} "pwd"
+#ssh ${aws} "pwd"
+
+function usage {
+    echo
+    echo "========================================================================================="
+    echo "syntax:"
+    echo 
+    echo "workflow.sh --help or workflow.sh -help or workflow.sh help : PRINTS THIS MESSAGE"
+    echo
+    echo "workflow.sh DISTANCEPICKLENUMBER PICKLEFILENAME NOOFTRYS NOOFBATCHES TESTMODE"
+    echo
+    echo "DISTANCEPICKLENUMBER needs to be an integer"
+    echo
+    echo "PICKLEFILENAME needs to be the name of the input pickle file with total distance and initial route"
+    echo
+    echo "NOOFTRYS needs to be an integer"
+    echo
+    echo "NOOFBATCHES needs to be an integer"
+    echo
+    echo "TESTMODE: IS OPTIONAL. only acceptable value is 1. Setting testmode to 1 will enable the testing mode"
+    echo "========================================================================================="
+    echo
+    echo
+    exit 1
+}
+
+function help {
+    echo "Help Requested"
+    usage
+}
+
+function fileDNE {
+    echo "The file $2 DNE"
+    echo "Please enter a valid file name"
+    exit 2
+}
+
+function nonInteger {
+    echo "The value you've entered is not a valid integer"
+    echo "You entered $1"
+    echo "Please try again"
+    exit 3
+}
+
+
+function badInput {
+    echo "Following inputs received"
+    echo $@
+    echo "Please review program usage and try again"
+    echo "==========================================================="
+    usage
+    exit 4
+}
+
+function getCurrentBest {
+    currentbest=`ssh {owens} "source ~nehrbajo/proj03data/update03.sh $1" `
+}
+
+#file setup for fry
+
+function guessPicklefileSetup {
+    #initial Guess PickleFIle to fry
+    scp $2  ${fry}:
+  
+    scp $2  ${owens}:
+
+    #scp -i ~w140bxj/.ssh/labsuser.pem $2 ${aws}: 
+
+    #scp -i ~w140bxj/.ssh/labsuser.pem ~w006jwn/proj03data/tspMod.py ${aws}:
+    #scp -i ~w140bxj/.ssh/labsuser.pem initialGuess.pickle ${aws}:
+    #scp -i ~w140bxj/.ssh/labsuser.pem ~w006jwn/proj03data/distance0* ${aws}: 2> /dev/null
+    #scp -i ~w140bxj/.ssh/labsuser.pem awsTemplate.sh ${aws}:
+}
+
+function editTemplates {
+    #   singularity exec -B /home/w006jwn/proj03data -B /home/w006jwn/proj03data/tspMod.py ~w006jwn/python3.sif python3 /home/w006jwn/proj03data/tspMod.py DISTANCEPICKLENUMBER PICKLEFILENAME $(($task+RANDSEED)) NOOFTRYS &   
+    # $1 Batch Job Number
+    # $2 distance pickle number 0-9
+    # $3 pickle file name -- starts with initial guess
+    # $4 random seed provided by the user
+    # $5 number of trys provided by the user
+    # $6 batch job number 
+    # $7 start of the forloop template
+    # $8 end of the forloop in template
+    # $9 filename to attach to
+
+    sed -e 's/MYATTEMPT/$1/g' -e 's/MYDIR/attempt$1/g' -e 's/DISTANCEPICKLENUMBER/$2/g' -e 's/PICKLEFILENAME/$3/g' -e 's/RANDSEED/$4/g' -e 's/NOOFTRYS/$5/g' -e 's/LOOPSTART/$7/g' -e 's/LOOPEND/$8/g' fryTemplate.sbatch > $9
+    sed -e 's/MYATTEMPT/$1/g' -e 's/MYDIR/attempt$1/g' -e 's/DISTANCEPICKLENUMBER/$2/g' -e 's/PICKLEFILENAME/$3/g' -e 's/RANDSEED/$4/g' -e 's/NOOFTRYS/$5/g' -e 's/LOOPSTART/$7/g' -e 's/LOOPEND/$8/g' owensTemplate.sbatch > $9
+}
+
+# Check for  keywords (help, -help, --help)
+if [ "$1" == "help" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ]; then
+    # echo "got in the help section"
+    help
+fi
+
+if ! ([  "$#" == 4 ] || [ "$#" == 5 ]); then
+    echo "checking if input equal 4 or 5"
+    usage
+fi
+
+if [ "$#" -gt 5 ]; then
+    echo "checking if inputs are more than 5"
+    badInput
+fi
+
+
+#===========================main program loop ============
+while [ ! -f "TERMINATE" ]
+do
+    if [ ! -f "SAVEDSTATE"]; then
+	#load starting val, ending val for number of batches from the saved state file
+    #randomSeed Val
+    #nofOf Trys
+
+    
+        for (( i=$StartVal; i<$endVal; i++ ));
+            do
+            #echo $(( $i+1 ))
+            #if [ $(( $i+1 )) -eq 300 ]; then
+            #    touch TERMINATE
+            #    break
+            #fi
+            #sleep 1s
+
+            #program loop for when we have saved values
+        done
+        fi
+    else
+        for ((i=0; i<$4; i++));
+            do
+                #main program loop here
+                fryFilename= fryJob{$i} 
+                owensFileName=
+            done
+            
+    fi
+    
+done
+
+if [ -f "TERMINATE" ]; then
+   echo "TERMINATE command found"
+   echo "Please remove the file using \"rm TERMINATE\" "
+fi

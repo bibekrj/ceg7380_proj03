@@ -1,0 +1,5 @@
+mkdir MYDIR
+
+cd MYDIR
+
+singularity exec python3.sif python3 tspMod.py DISTANCEPICKLEVALUE PICKLEFILENAME RANDSEED NOOFTRYS
