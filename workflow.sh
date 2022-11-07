@@ -17,6 +17,7 @@ aws='ubuntu@34.235.48.146'
 # $3 randseed
 # $4 no of trys
 # $5 no of batch jobs
+# $6 flag for test mode 
 
 #ssh ${fry} "pwd"
 #ssh ${owens} "pwd"
@@ -29,9 +30,11 @@ function usage {
     echo 
     echo "workflow.sh --help or workflow.sh -help or workflow.sh help : PRINTS THIS MESSAGE"
     echo
-    echo "workflow.sh DISTANCEPICKLENUMBER PICKLEFILENAME NOOFTRYS NOOFBATCHES TESTMODE"
+    echo "workflow.sh DISTANCEPICKLENUMBER PICKLEFILENAME RANDSEED NOOFTRYS NOOFBATCHES TESTMODE"
     echo
     echo "DISTANCEPICKLENUMBER needs to be an integer"
+    echo
+    echo "RANDSEED needs to be an integer value defined by the user"
     echo
     echo "PICKLEFILENAME needs to be the name of the input pickle file with total distance and initial route"
     echo
@@ -116,8 +119,8 @@ if [ "$1" == "help" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ]; then
     help
 fi
 
-if ! ([  "$#" == 4 ] || [ "$#" == 5 ]); then
-    echo "checking if input equal 4 or 5"
+if ! ([  "$#" == 5 ] || [ "$#" == 6 ]); then
+    echo "checking if input equal 5 or 6"
     usage
 fi
 
@@ -148,11 +151,13 @@ do
             #program loop for when we have saved values
         done
     else
-        for ((i=0; i<$4; i++));
+        for ((i=0; i<$5; i++));
             do
                 #main program loop here
-                fryFilename= fryJob{$i} 
-                owensFileName=
+                fryFilename= fryJob$i 
+                owensFileName= owensJob$i
+                sed -e 's/MYATTEMPT/$i/g' -e 's/MYDIR/attempt$i/g' -e 's/DISTANCEPICKLENUMBER/$1/g' -e 's/PICKLEFILENAME/$2/g' -e 's/RANDSEED/$3/g' -e 's/NOOFTRYS/$4/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > ${fryFilename}.sbatch
+                sed -e 's/MYATTEMPT/$i/g' -e 's/MYDIR/attempt$i/g' -e 's/DISTANCEPICKLENUMBER/$1/g' -e 's/PICKLEFILENAME/$2/g' -e 's/RANDSEED/$3/g' -e 's/NOOFTRYS/$4/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > ${owensFilename}.sbatch
             done
             
     fi
