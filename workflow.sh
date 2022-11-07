@@ -147,7 +147,6 @@ do
 
             #program loop for when we have saved values
         done
-        fi
     else
         for ((i=0; i<$4; i++));
             do
