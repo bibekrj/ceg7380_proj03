@@ -85,9 +85,10 @@ function getCurrentBest {
 
 function guessPicklefileSetup {
     #initial Guess PickleFIle to fry
+    echo "************sending first guess pickle file to fry*****************"
     scp $1  ${fry}:
   
-    scp $1  ${owens}:
+    #scp $1  ${owens}:
 
     #scp -i ~w140bxj/.ssh/labsuser.pem $2 ${aws}: 
 
@@ -131,19 +132,19 @@ fi
 
 
 #===========================main program loop ============
-while [ ! -f "TERMINATE" ]
+echo "1. Getting best distance"
 bestDistance=`ssh ${owens} "source ~nehrbajo/proj03data/update03.sh $1" `
-do
-    if [ -f "SAVEDSTATE" ]; then
+echo "Best Distance is "$bestDistance" "
+
+if [ -f "SAVEDSTATE" ]; then
 	#load starting val, ending val for number of batches from the saved state file
     #randomSeed Val
     #nofOf Trys
-
+    #load the values
     
-        for (( i=$StartVal; i<$endVal; i++ ));
+        #for (( i=$StartVal; i<$endVal; i++ ));
         #for ((i=0; i<$5; i++));
-            do
-            echo 'doing nothing'
+         ##  echo 'doing nothing'
             #echo $(( $i+1 ))
             #if [ $(( $i+1 )) -eq 300 ]; then
             #    touch TERMINATE
@@ -152,80 +153,110 @@ do
             #sleep 1s
 
             #program loop for when we have saved values
-        done
-    else
-        #sending pickle files
+        #done
+        echo 'Saved State found, loading values.....'
+else
+    #sending pickle files
+    guessPicklefileSetup $2
 
-        guessPicklefileSetup $2
-
-        for ((i=0; i<$5; i++));
-            do
-                #main program loop if no previous run
-                fryFileName=fryJob$i.sbatch 
-                owensFileName=owensJob$i.sbatch
-                sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > $fryFileName
-                #sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > $owensFileName
-                
-                scp $fryFileName  ${fry}:
-                # scp $owensFileName ${owens}:
-
-                ssh ${fry} "sbatch $fryFileName"
-                # ssh ${owens} "sbatch $owensFileName"
-                echo 'Putting Script to Sleep for the '$i' batch to run'
-                sleep 30s
-                fryFinished=""
-                while [ "$fryFinished" == '' ]
-                        do
-                            echo 'got inside the fryfinished loop'                            
-                            echo 'sleeping'
-                            echo '*******************'
-                            echo '****************'
-                            echo '************'
-                            sleep 5m
-                            echo 'awake'
-                            fryFinished=`ssh ${fry} "ls attempt$i/ 2> /dev/null | grep "FINISHED" "` 
-                            echo '********************'
-                        done
-                echo "FRY FINISHED $i"
-                if [ "$fryFinished" == "FINISHED" ]; then
-                    echo '********************************'
-                    echo 'about to copy file from remote to local for comparuing'
-                    
-                    scp ${fry}:attempt$i/'best_'$i'_detail.txt' .\
-
-                    echo '*********************************'
-                    echo 'trying to read from the downloaded file'
-                    bestrunfromFry=`cat 'best_'$i'_detail.txt' | head -n 1`
-
-                    echo '*********************************'
-                    echo 'the best distance on fry is'
-                    echo $bestrunfromFry
-                    
-                    
-
-                    echo '*********************************'
-                    echo 'the current best distance is'
-                    echo $bestDistance
-
-                    if [ $bestrunfromFry -lt $bestDistance ]; then
-                        echo 'FOUND'
-                        echo 'bestrun from fry is '$bestrunfromFry''
-                        echo 'current best distance is '$bestDistance'' 
-                    
-                    else
-                        echo '********************'
-                        echo 'NOMAS'
-                        echo 'bestrun from fry is '$bestrunfromFry''
-                        echo 'current best distance is '$bestDistance''
-                    fi
-                fi
-
-            done
+    START=0
+    END=$5
+    PICKLEFILE=$2
+    for ((i=${START}; i<${END}; i++));
+        do
+            echo
+            echo "Pickle File is "$PICKLEFILE" "
+            echo
+            #main program loop if no previous run
+            fryFileName=fryJob$i.sbatch 
+            owensFileName=owensJob$i.sbatch
+            sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$PICKLEFILE'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > $fryFileName
+            #sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > $owensFileName
             
-    fi
-    break
+            echo 'sending Prepared batch template to fry'
+            echo
+            scp $fryFileName  ${fry}:
+            echo
+            # scp $owensFileName ${owens}:
+
+            echo 'running the prepared batch template in fry'
+            echo
+            ssh ${fry} "sbatch $fryFileName"
+            echo
+            # ssh ${owens} "sbatch $owensFileName"
+            echo 'Putting Script to Sleep for the '$i' batch to run'
+            # sleep 30s
+            jobFinished=""
+            while [ "$jobFinished" == '' ]
+                    do
+                        echo 'got inside the fryfinished loop'                            
+                        echo 'sleeping'
+                        echo '*******************'
+                        echo '****************'
+                        echo '************'
+                        sleep 10s
+                        echo 'awake'
+                        echo
+                        fryFinished=`ssh ${fry} "ls attempt$i/ 2> /dev/null | grep "FINISHED" "` 
+                        echo
+                        # owensFinished=`ssh ${owens} "ls attempt$i/ 2> /dev/null | grep "FINISHED" "` 
+                        # awsFinished=`ssh ${owens} "ls attempt$i/ 2> /dev/null | grep "FINISHED" "` 
+                        echo '********************'
+                        if [ "$fryFinished" == "FINISHED" ]; then
+                            jobFinished="FINISHED"
+                        fi
+                    done
+            echo "JOBS FINISHED $i"
+            if [ "$jobFinished" == "FINISHED" ]; then
+                echo '********************************'
+                echo 'about to copy file from remote to local for comparuing'
+                echo
+                scp ${fry}:attempt$i/'best_'$i'_detail.txt' .
+                echo
+                echo '*********************************'
+                echo 'trying to read from the downloaded file'
+                bestrunfromFry=`cat 'best_'$i'_detail.txt' | head -n 1`
+
+                echo '*********************************'
+                echo "the best distance on fry is "$bestrunfromFry" "
+                # echo $bestrunfromFry
+                
+                
+
+                echo '*********************************'
+                echo "the current best distance is "$bestDistance" "
+
+                if [ "$bestrunfromFry" -lt "$bestDistance" ]; then
+                    echo 'FOUND'
+                    echo '***************************CONGRATULATIONS******************'
+                
+                else
+                    echo '********************'
+                    echo 'NOBUENO'
+                    echo 'getting current best weight details'
+                    echo
+                    distance=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$1".txt | tail -n 5 | head -n 1"`
+                    echo
+                    path=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$1".txt | tail -n 5 | head -n 2 | tail -n 1"`
+                    echo
+                    filename="database0"$1""
+                    python3 utils.py 2 "$distance" "$path" "$filename"
+                    echo 'bestrun from fry is '$bestrunfromFry''
+                    echo 'current best distance is '$bestDistance''
+                    PICKLEFILE="$filename".pickle
+                    
+                    echo 'sending the new best to remote servers'
+                    echo
+                    scp "$PICKLEFILE" ${fry}:
+                    echo
+                fi
+            fi
+
+        done
+        
+fi
     
-done
+
 
 if [ -f "TERMINATE" ]; then
    echo "TERMINATE command found"
