@@ -125,43 +125,41 @@ if ! ([  "$#" == 5 ] || [ "$#" == 6 ]); then
     usage
 fi
 
-if [ "$#" -gt 5 ]; then
+if [ "$#" -gt 6 ]; then
     echo "checking if inputs are more than 5"
     badInput
 fi
 
 
 #===========================main program loop ============
+# if [ -f "TERMINATE" ]; then
+#    echo "TERMINATE command found"
+#    echo "Please remove the file using \"rm TERMINATE\" "
+    # exit
+# fi
+
 echo "1. Getting best distance"
 bestDistance=`ssh ${owens} "source ~nehrbajo/proj03data/update03.sh $1" `
 echo "Best Distance is "$bestDistance" "
 
 if [ -f "SAVEDSTATE" ]; then
-	#load starting val, ending val for number of batches from the saved state file
-    #randomSeed Val
-    #nofOf Trys
-    #load the values
-    
-        #for (( i=$StartVal; i<$endVal; i++ ));
-        #for ((i=0; i<$5; i++));
-         ##  echo 'doing nothing'
-            #echo $(( $i+1 ))
-            #if [ $(( $i+1 )) -eq 300 ]; then
-            #    touch TERMINATE
-            #    break
-            #fi
-            #sleep 1s
+	echo 'Saved State found, loading values.....'
+    WEIGHT=`grep "WEIGHT" SAVEDSTATE | cut -d ":" -f2`
+    START=`grep "ITERNATION_STATE" SAVEDSTATE | cut -d ":" -f2`
+    END=`grep "BATCH_END" SAVEDSTATE | cut -d ":" -f2`
+    RANDSEED=`grep "RAND_SEED" SAVEDSTATE | cut -d ":" -f2`
+    PICKLEFILE=`grep "PICKLE_FILE_NAME" SAVEDSTATE | cut -d ":" -f2`
+    NOOFTRYS=`grep "NO_OF_TRYS" SAVEDSTATE | cut -d ":" -f2`
 
-            #program loop for when we have saved values
-        #done
-        echo 'Saved State found, loading values.....'
 else
-    #sending pickle files
+    #sending initial pickle files
     guessPicklefileSetup $2
-
+    WEIGHT=$1
     START=0
     END=$5
     PICKLEFILE=$2
+    RANDSEED=$3
+    NOOFTRYS=$4
 fi
 for ((i=${START}; i<${END}; i++));
     do
@@ -171,7 +169,7 @@ for ((i=${START}; i<${END}; i++));
         #main program loop if no previous run
         fryFileName=fryJob$i.sbatch 
         owensFileName=owensJob$i.sbatch
-        sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$PICKLEFILE'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > $fryFileName
+        sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$WEIGHT'/g' -e 's/PICKLEFILENAME/'$PICKLEFILE'/g' -e 's/RANDSEED/'$RANDSEED'/g' -e 's/NOOFTRYS/'$NOOFTRYS'/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > $fryFileName
         #sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > $owensFileName
         
         echo 'sending Prepared batch template to fry'
@@ -247,19 +245,44 @@ for ((i=${START}; i<${END}; i++));
                 echo 
                 echo "running the update03.sh"
                 echo
-                #ssh ${owens} "source /users/PWSU0471/nehrbajo/proj03data/update03.sh "$1" "$destFileName" "
+                echo 'removing saved state'
+                if [ -f "SAVEDSTATE" ]; then
+                    rm "SAVEDSTATE"
+                fi
                 echo
+                
+                if [ "$6" == 1 ]; then
+                    distance=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$WEIGHT".txt | tail -n 5 | head -n 1"`
+                    echo
+                    path=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$WEIGHT".txt | tail -n 5 | head -n 2 | tail -n 1"`
+                    echo
+                    filename="database0"$i""
+                    python3 utils.py 2 "$distance" "$path" "$filename"
+                    echo 'bestrun from fry is '$bestrunfromFry''
+                    echo 'current best distance is '$bestDistance''
+                    PICKLEFILE="$filename".pickle
+                    
+                    echo 'sending the new best to remote servers'
+                    echo
+                    scp "$PICKLEFILE" ${fry}:
+                    echo
+                else
+                    ssh ${owens} "source /users/PWSU0471/nehrbajo/proj03data/update03.sh "$WEIGHT" "$destFileName" "
+                    exit
+                fi
+                echo
+               
                                 
             else
                 echo '********************'
                 echo 'NOBUENO'
                 echo 'getting current best weight details'
                 echo
-                distance=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$1".txt | tail -n 5 | head -n 1"`
+                distance=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$WEIGHT".txt | tail -n 5 | head -n 1"`
                 echo
-                path=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$1".txt | tail -n 5 | head -n 2 | tail -n 1"`
+                path=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$WEIGHT".txt | tail -n 5 | head -n 2 | tail -n 1"`
                 echo
-                filename="database0"$1""
+                filename="database0"$i""
                 python3 utils.py 2 "$distance" "$path" "$filename"
                 echo 'bestrun from fry is '$bestrunfromFry''
                 echo 'current best distance is '$bestDistance''
@@ -270,15 +293,17 @@ for ((i=${START}; i<${END}; i++));
                 scp "$PICKLEFILE" ${fry}:
                 echo
             fi
+            if [ -f "TERMINATE" ]; then
+                echo 'ITERNATION_STATE':$(($i+1)) >> SAVEDSTATE
+                echo 'WEIGHT':$1 >> SAVEDSTATE
+                echo 'BATCH_END':$5 >> SAVEDSTATE
+                echo 'RAND_SEED':$3 >> SAVEDSTATE
+                echo 'PICKLE_FILE_NAME':$PICKLEFILE >> SAVEDSTATE
+                echo 'NO_OF_TRYS':$4 >> SAVEDSTATE
+                rm "TERMINATE"
+                exit 
+
+            fi
         fi
 
     done
-        
-
-    
-
-
-if [ -f "TERMINATE" ]; then
-   echo "TERMINATE command found"
-   echo "Please remove the file using \"rm TERMINATE\" "
-fi
