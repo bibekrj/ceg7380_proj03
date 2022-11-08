@@ -27,7 +27,7 @@ touch STARTED
 
 for task in $(seq 0 15);
 do
-    singularity exec -B /home/w006jwn/proj03data -B /home/w006jwn/proj03data/tspMod.py ~w006jwn/python3.sif python3 /home/w006jwn/proj03data/tspMod.py 1 initialGuess.pickle $(($task+20)) 300000 &   
+    singularity exec -B /home/w006jwn/proj03data -B /home/w006jwn/proj03data/tspMod.py ~w006jwn/python3.sif python3 /home/w006jwn/proj03data/tspMod.py 1 initialGuess.pickle $(($task+10)) 500000 &   
 done
 wait
 
