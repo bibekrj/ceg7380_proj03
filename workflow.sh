@@ -229,6 +229,9 @@ else
                 if [ "$bestrunfromFry" -lt "$bestDistance" ]; then
                     echo 'FOUND'
                     echo '***************************CONGRATULATIONS******************'
+                    echo 'updating the database'
+                    python3 utils.py 3 "$"
+                    scp fileNamehere ${owens}
                 
                 else
                     echo '********************'
