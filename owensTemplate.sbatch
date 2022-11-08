@@ -38,8 +38,8 @@ current_best_MYATTEMPT_NUM=`cut -d ":" -f2 ../resultsMYATTEMPT.txt| uniq |sort |
 best_pickle_file=`grep "$current_best_MYATTEMPT_NUM" ../resultsMYATTEMPT.txt | cut -d ":" -f1 | head -n 1`
 
 #touch best_ATTEMPTNUM_detail.txt
-echo $current_best_MYATTEMPT_NUM >>  best_MYATTEMPT_detail.txt
+echo $current_best_MYATTEMPT_NUM >>  job_MYATTEMPT_detail.txt
 
-echo $best_pickle_file >> best_MYATTEMPT_detail.txt
+echo $best_pickle_file >> job_MYATTEMPT_detail.txt
 
 mv STARTED FINISHED

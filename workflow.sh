@@ -162,102 +162,119 @@ else
     START=0
     END=$5
     PICKLEFILE=$2
-    for ((i=${START}; i<${END}; i++));
-        do
-            echo
-            echo "Pickle File is "$PICKLEFILE" "
-            echo
-            #main program loop if no previous run
-            fryFileName=fryJob$i.sbatch 
-            owensFileName=owensJob$i.sbatch
-            sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$PICKLEFILE'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > $fryFileName
-            #sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > $owensFileName
-            
-            echo 'sending Prepared batch template to fry'
-            echo
-            scp $fryFileName  ${fry}:
-            echo
-            # scp $owensFileName ${owens}:
-
-            echo 'running the prepared batch template in fry'
-            echo
-            ssh ${fry} "sbatch $fryFileName"
-            echo
-            # ssh ${owens} "sbatch $owensFileName"
-            echo 'Putting Script to Sleep for the '$i' batch to run'
-            # sleep 30s
-            jobFinished=""
-            while [ "$jobFinished" == '' ]
-                    do
-                        echo 'got inside the fryfinished loop'                            
-                        echo 'sleeping'
-                        echo '*******************'
-                        echo '****************'
-                        echo '************'
-                        sleep 10s
-                        echo 'awake'
-                        echo
-                        fryFinished=`ssh ${fry} "ls attempt$i/ 2> /dev/null | grep "FINISHED" "` 
-                        echo
-                        # owensFinished=`ssh ${owens} "ls attempt$i/ 2> /dev/null | grep "FINISHED" "` 
-                        # awsFinished=`ssh ${owens} "ls attempt$i/ 2> /dev/null | grep "FINISHED" "` 
-                        echo '********************'
-                        if [ "$fryFinished" == "FINISHED" ]; then
-                            jobFinished="FINISHED"
-                        fi
-                    done
-            echo "JOBS FINISHED $i"
-            if [ "$jobFinished" == "FINISHED" ]; then
-                echo '********************************'
-                echo 'about to copy file from remote to local for comparuing'
-                echo
-                scp ${fry}:attempt$i/'best_'$i'_detail.txt' .
-                echo
-                echo '*********************************'
-                echo 'trying to read from the downloaded file'
-                bestrunfromFry=`cat 'best_'$i'_detail.txt' | head -n 1`
-
-                echo '*********************************'
-                echo "the best distance on fry is "$bestrunfromFry" "
-                # echo $bestrunfromFry
-                
-                
-
-                echo '*********************************'
-                echo "the current best distance is "$bestDistance" "
-
-                if [ "$bestrunfromFry" -lt "$bestDistance" ]; then
-                    echo 'FOUND'
-                    echo '***************************CONGRATULATIONS******************'
-                    echo 'updating the database'
-                    python3 utils.py 3 "$"
-                    scp fileNamehere ${owens}
-                
-                else
-                    echo '********************'
-                    echo 'NOBUENO'
-                    echo 'getting current best weight details'
-                    echo
-                    distance=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$1".txt | tail -n 5 | head -n 1"`
-                    echo
-                    path=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$1".txt | tail -n 5 | head -n 2 | tail -n 1"`
-                    echo
-                    filename="database0"$1""
-                    python3 utils.py 2 "$distance" "$path" "$filename"
-                    echo 'bestrun from fry is '$bestrunfromFry''
-                    echo 'current best distance is '$bestDistance''
-                    PICKLEFILE="$filename".pickle
-                    
-                    echo 'sending the new best to remote servers'
-                    echo
-                    scp "$PICKLEFILE" ${fry}:
-                    echo
-                fi
-            fi
-
-        done
-        
 fi
+for ((i=${START}; i<${END}; i++));
+    do
+        echo
+        echo "Pickle File is "$PICKLEFILE" "
+        echo
+        #main program loop if no previous run
+        fryFileName=fryJob$i.sbatch 
+        owensFileName=owensJob$i.sbatch
+        sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$PICKLEFILE'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > $fryFileName
+        #sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > $owensFileName
+        
+        echo 'sending Prepared batch template to fry'
+        echo
+        scp $fryFileName  ${fry}:
+        echo
+        # scp $owensFileName ${owens}:
+
+        echo 'running the prepared batch template in fry'
+        echo
+        ssh ${fry} "sbatch $fryFileName"
+        echo
+        # ssh ${owens} "sbatch $owensFileName"
+        echo 'Putting Script to Sleep for the '$i' batch to run'
+        # sleep 30s
+        jobFinished=""
+        while [ "$jobFinished" == '' ]
+                do
+                    echo 'got inside the fryfinished loop'                            
+                    echo 'sleeping'
+                    echo '*******************'
+                    echo '****************'
+                    echo '************'
+                    sleep 10s
+                    echo 'awake'
+                    echo
+                    fryFinished=`ssh ${fry} "ls attempt$i/ 2> /dev/null | grep "FINISHED" "` 
+                    echo
+                    # owensFinished=`ssh ${owens} "ls attempt$i/ 2> /dev/null | grep "FINISHED" "` 
+                    # awsFinished=`ssh ${owens} "ls attempt$i/ 2> /dev/null | grep "FINISHED" "` 
+                    echo '********************'
+                    if [ "$fryFinished" == "FINISHED" ]; then
+                        jobFinished="FINISHED"
+                    fi
+                done
+        echo "JOBS FINISHED $i"
+        if [ "$jobFinished" == "FINISHED" ]; then
+            echo '********************************'
+            echo 'about to copy file from remote to local for comparuing'
+            echo
+            scp ${fry}:attempt$i/'job_'$i'_detail.txt' .
+            echo
+            echo '*********************************'
+            echo 'trying to read from the downloaded file'
+            bestrunfromFry=`cat 'job_'$i'_detail.txt' | head -n 1`
+
+            echo '*********************************'
+            echo "the best distance on fry is "$bestrunfromFry" "
+            # echo $bestrunfromFry
+            
+            
+
+            echo '*********************************'
+            echo "the current best distance is "$bestDistance" "
+
+            if [ "$bestrunfromFry" -lt "$bestDistance" ]; then
+                echo 'FOUND'
+                echo '***************************CONGRATULATIONS******************'
+                echo "updating the database"
+                bestFileName=`cat "job_"$i"_detail.txt" | tail -n 1`
+                destFileName="bestIFoundSoFar_$1_$i.txt"
+                echo
+                python3 utils.py 3 "$HOME/attempt$i/$bestFileName" "$destFileName"
+                echo
+                echo 'copying new best distaance to owens for submission'
+                echo $destFileName
+                scp "$destFileName" ${owens}:
+                echo
+                echo "copying relevant database file to home directory"
+                echo
+                ssh ${owens} "ln -s ~nehrbajo/proj03data/distance0"$1".pickle . 2> /dev/null"
+                ssh ${owens} "ln -s ~nehrbajo/proj03data/database0"$1".txt . 2> /dev/null"
+                echo 
+                echo "running the update03.sh"
+                echo
+                #ssh ${owens} "source /users/PWSU0471/nehrbajo/proj03data/update03.sh "$1" "$destFileName" "
+                echo
+                                
+            else
+                echo '********************'
+                echo 'NOBUENO'
+                echo 'getting current best weight details'
+                echo
+                distance=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$1".txt | tail -n 5 | head -n 1"`
+                echo
+                path=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$1".txt | tail -n 5 | head -n 2 | tail -n 1"`
+                echo
+                filename="database0"$1""
+                python3 utils.py 2 "$distance" "$path" "$filename"
+                echo 'bestrun from fry is '$bestrunfromFry''
+                echo 'current best distance is '$bestDistance''
+                PICKLEFILE="$filename".pickle
+                
+                echo 'sending the new best to remote servers'
+                echo
+                scp "$PICKLEFILE" ${fry}:
+                echo
+            fi
+        fi
+
+    done
+        
+
     
 
 

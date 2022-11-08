@@ -15,7 +15,7 @@ def pickleCreator(totalDistance, pathway, fileName):
     readyName=fileName+".pickle"
     ofile = open(readyName, 'wb')
     a=pathway.rstrip(']')
-    print(a)
+    # print(a)
     b = a.lstrip('[')
     # print(pathway)
     list1=b.split(',')
@@ -26,7 +26,7 @@ def pickleCreator(totalDistance, pathway, fileName):
     # return None
 
 def pickleToText(fileName, destFile):
-    readyName=fileName+".pickle"
+    readyName=fileName.lower()+".pickle"
     rfile = open(readyName, 'rb')
     val1= pickle.load(rfile)
     val = pickle.load(rfile)
