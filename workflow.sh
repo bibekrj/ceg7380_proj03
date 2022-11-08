@@ -8,8 +8,7 @@
 fry='w140bxj@fry.cs.wright.edu'
 owens='w140bxj@owens.osc.edu'
 aws='ubuntu@34.235.48.146'
-
-#awspemfilepath = '-i ~w140bxj/.ssh/labsuser.pem'
+awspemfilepath = '~w140bxj/.ssh/labsuser.pem'
 
 #params needed for the program to run
 # $1 weighttype
@@ -98,22 +97,6 @@ function guessPicklefileSetup {
     #scp -i ~w140bxj/.ssh/labsuser.pem awsTemplate.sh ${aws}:
 }
 
-function editTemplates {
-    #   singularity exec -B /home/w006jwn/proj03data -B /home/w006jwn/proj03data/tspMod.py ~w006jwn/python3.sif python3 /home/w006jwn/proj03data/tspMod.py DISTANCEPICKLENUMBER PICKLEFILENAME $(($task+RANDSEED)) NOOFTRYS &   
-    # $1 Batch Job Number
-    # $2 distance pickle number 0-9
-    # $3 pickle file name -- starts with initial guess
-    # $4 random seed provided by the user
-    # $5 number of trys provided by the user
-    # $6 batch job number 
-    # $7 start of the forloop template
-    # $8 end of the forloop in template
-    # $9 filename to attach to
-
-    sed -e 's/MYATTEMPT/$1/g' -e 's/MYDIR/attempt$1/g' -e 's/DISTANCEPICKLENUMBER/$2/g' -e 's/PICKLEFILENAME/$3/g' -e 's/RANDSEED/$4/g' -e 's/NOOFTRYS/$5/g' -e 's/LOOPSTART/$7/g' -e 's/LOOPEND/$8/g' fryTemplate.sbatch > $9
-    sed -e 's/MYATTEMPT/$1/g' -e 's/MYDIR/attempt$1/g' -e 's/DISTANCEPICKLENUMBER/$2/g' -e 's/PICKLEFILENAME/$3/g' -e 's/RANDSEED/$4/g' -e 's/NOOFTRYS/$5/g' -e 's/LOOPSTART/$7/g' -e 's/LOOPEND/$8/g' owensTemplate.sbatch > $9
-}
-
 # Check for  keywords (help, -help, --help)
 if [ "$1" == "help" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ]; then
     # echo "got in the help section"
@@ -126,7 +109,7 @@ if ! ([  "$#" == 5 ] || [ "$#" == 6 ]); then
 fi
 
 if [ "$#" -gt 6 ]; then
-    echo "checking if inputs are more than 5"
+    echo "checking if inputs are more than 6"
     badInput
 fi
 
@@ -138,9 +121,9 @@ fi
     # exit
 # fi
 
-echo "1. Getting best distance"
+echo "Getting best distance"
 bestDistance=`ssh ${owens} "source ~nehrbajo/proj03data/update03.sh $1" `
-echo "Best Distance is "$bestDistance" "
+echo "The Best Distance is "$bestDistance" "
 
 if [ -f "SAVEDSTATE" ]; then
 	echo 'Saved State found, loading values.....'
@@ -169,14 +152,18 @@ for ((i=${START}; i<${END}; i++));
         #main program loop if no previous run
         fryFileName=fryJob$i.sbatch 
         owensFileName=owensJob$i.sbatch
+        awsFileName=awsJob$i.sh
         sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$WEIGHT'/g' -e 's/PICKLEFILENAME/'$PICKLEFILE'/g' -e 's/RANDSEED/'$RANDSEED'/g' -e 's/NOOFTRYS/'$NOOFTRYS'/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > $fryFileName
-        #sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$1'/g' -e 's/PICKLEFILENAME/'$2'/g' -e 's/RANDSEED/'$3'/g' -e 's/NOOFTRYS/'$4'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > $owensFileName
+        sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$WEIGHT'/g' -e 's/PICKLEFILENAME/'$PICKLEFILE'/g' -e 's/RANDSEED/'$RANDSEED'/g' -e 's/NOOFTRYS/'$NOOFTRYS'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > $owensFileName
+        sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$WEIGHT'/g' -e 's/PICKLEFILENAME/'$PICKLEFILE'/g' -e 's/RANDSEED/'$RANDSEED'/g' -e 's/NOOFTRYS/'$NOOFTRYS'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' aws.sh > $awsFileName
         
         echo 'sending Prepared batch template to fry'
         echo
         scp $fryFileName  ${fry}:
         echo
-        # scp $owensFileName ${owens}:
+        scp $owensFileName ${owens}:
+        echo
+        scp
 
         echo 'running the prepared batch template in fry'
         echo
