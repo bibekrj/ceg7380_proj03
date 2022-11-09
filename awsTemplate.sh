@@ -18,10 +18,8 @@ ln -s ../distance0* . 2> /dev/null
 
 
 touch STARTED
-touch resultsMYATTEMPT.txt
-touch job_MYATTEMPT_detail
 
-singularity exec ../python3.sif python3 ../tspMod.py DISTANCEPICKLENUMBER PICKLEFILENAME $(($task+RANDSEED)) NOOFTRYS > resultsMYATTEMPT.txt
+singularity exec ../python3.sif python3 ../tspMod.py DISTANCEPICKLENUMBER PICKLEFILENAME $(($task+RANDSEED)) NOOFTRYS > ../resultsMYATTEMPT.txt
 wait
 
 current_best_MYATTEMPT_NUM=`cut -d ":" -f2 ../resultsMYATTEMPT.txt| uniq |sort | head -n1`
