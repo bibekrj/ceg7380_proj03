@@ -26,8 +26,8 @@ def pickleCreator(totalDistance, pathway, fileName):
     # return None
 
 def pickleToText(fileName, destFile):
-    readyName=fileName.lower()+".pickle"
-    rfile = open(readyName, 'rb')
+    # readyName=fileName
+    rfile = open(fileName, 'rb')
     val1= pickle.load(rfile)
     val = pickle.load(rfile)
     asciiFile = open(destFile, 'w')
