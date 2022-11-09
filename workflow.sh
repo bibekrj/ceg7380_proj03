@@ -156,9 +156,9 @@ for ((i=${START}; i<${END}; i++));
         echo "Pickle File is "$PICKLEFILE" "
         echo
         #main program loop if no previous run
-        fryFileName=fryJob$i.sbatch 
-        owensFileName=owensJob$i.sbatch
-        awsFileName=awsJob$i.sh
+        fryFileName="fryJob$i.sbatch" 
+        owensFileName="owensJob$i.sbatch"
+        awsFileName="awsJob$i.sh"
         sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$WEIGHT'/g' -e 's/PICKLEFILENAME/'$PICKLEFILE'/g' -e 's/RANDSEED/'$RANDSEED'/g' -e 's/NOOFTRYS/'$NOOFTRYS'/g' -e 's/LOOPSTART/0/g' -e 's/LOOPEND/15/g' fryTemplate.sbatch > $fryFileName
         sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$WEIGHT'/g' -e 's/PICKLEFILENAME/'$PICKLEFILE'/g' -e 's/RANDSEED/'$RANDSEED'/g' -e 's/NOOFTRYS/'$NOOFTRYS'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' owensTemplate.sbatch > $owensFileName
         sed -e 's/MYATTEMPT/'$i'/g' -e 's/MYDIR/attempt'$i'/g' -e 's/DISTANCEPICKLENUMBER/'$WEIGHT'/g' -e 's/PICKLEFILENAME/'$PICKLEFILE'/g' -e 's/RANDSEED/'$RANDSEED'/g' -e 's/NOOFTRYS/'$NOOFTRYS'/g' -e 's/LOOPSTART/16/g' -e 's/LOOPEND/32/g' awsTemplate.sh > $awsFileName
@@ -169,7 +169,8 @@ for ((i=${START}; i<${END}; i++));
         echo
         scp $owensFileName ${owens}:
         echo
-        scp -i ${awspemfilepath} $awsFileName ${aws}
+        echo 'sending aws bash file'
+        scp -i ${awspemfilepath} "$awsFileName" ${aws}:
         echo
 
         echo 'running the prepared batch template in fry'
@@ -178,6 +179,7 @@ for ((i=${START}; i<${END}; i++));
         echo
         ssh ${owens} "sbatch $owensFileName"
         echo
+        echo 'running aws script'
         ssh -i ${awspemfilepath} ${aws} "source $awsFileName"
         echo 'Putting Script to Sleep for the '$i' batch to run'
         # sleep 30s
@@ -243,26 +245,26 @@ for ((i=${START}; i<${END}; i++));
                 echo '***************************CONGRATULATIONS******************'
                 echo "updating the database"
                 if [ "$best_system" == 'FRY' ];then
-                    bestFileName=`cat "fry_job_"$i"_detail.txt" | tail -n 1`
+                    bestFileName=`cat "fry_job_"$i"_detail.txt" | tail -n 1 | tr '[:upper:]' '[:lower:]'`
                     destFileName="bestIFoundSoFar_$1_$i.txt"
                     bestPickleFileName='bestIFoundSoFar_fry_job_'$i'.pickle'
                     scp ${fry}:attempt$i/''$bestFileName'.pickle' "$bestPickleFileName"
                     
 
                 elif [ "$best_system" == 'OWENS' ];then
-                    bestFileName=`cat "owens_job_"$i"_detail.txt" | tail -n 1`
+                    bestFileName=`cat "owens_job_"$i"_detail.txt" | tail -n 1 | tr '[:upper:]' '[:lower:]'`
                     destFileName="bestIFoundSoFar_$1_$i.txt"
                     bestPickleFileName='bestIFoundSoFar_owens_job_'$i'.pickle'
                     scp ${owens}:attempt$i/''$bestFileName'.pickle' "$bestPickleFileName"
 
                 elif [ "$best_system" == 'AWS' ];then
-                    bestFileName=`cat "aws_job_"$i"_detail.txt" | tail -n 1`
+                    bestFileName=`cat "aws_job_"$i"_detail.txt" | tail -n 1 | tr '[:upper:]' '[:lower:]'`
                     destFileName="bestIFoundSoFar_$1_$i.txt"
                     bestPickleFileName='bestIFoundSoFar_aws_job_'$i'.pickle'
                     scp -i ${awspemfilepath} ${aws}:attempt$i/'$bestFileName.pickle' "$bestPickleFileName"
-
+                fi
                 echo
-                python3 utils.py 3 "$bestFileName" "$destFileName"
+                python3 utils.py 3 "$bestPickleFileName" "$destFileName"
                 echo
                 echo 'copying new best distaance to owens for submission'
                 echo $destFileName
@@ -273,14 +275,16 @@ for ((i=${START}; i<${END}; i++));
                 ssh ${owens} "ln -s ~nehrbajo/proj03data/distance0"$WEIGHT".pickle . 2> /dev/null"
                 ssh ${owens} "ln -s ~nehrbajo/proj03data/database0"$WEIGHT".txt . 2> /dev/null"
                 echo 
-                echo "running the update03.sh"
+                
                 echo
-                echo 'removing saved state'
+                echo 'checking if saved state exists'
                 if [ -f "SAVEDSTATE" ]; then
+                    echo 'removing saved states'
                     rm "SAVEDSTATE"
                 fi
                 echo
                 
+
                 if [ "$6" == 1 ]; then
                     # distance=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$WEIGHT".txt | tail -n 5 | head -n 1"`
                     # echo
@@ -291,7 +295,7 @@ for ((i=${START}; i<${END}; i++));
                     # echo 'bestrun from fry is '$bestrunfromFry''
                     # echo 'current best distance is '$bestDistance''
                     # PICKLEFILE="$filename".pickle
-                    PICKLEFILE=bestPickleFileName
+                    PICKLEFILE="$bestPickleFileName"
                     
                     echo 'sending the new best to remote servers'
                     echo
@@ -300,6 +304,7 @@ for ((i=${START}; i<${END}; i++));
                     scp -i ${awspemfilepath} "$PICKLEFILE" ${aws}:
                     echo
                 else
+                    echo "running the update03.sh"
                     ssh ${owens} "source /users/PWSU0471/nehrbajo/proj03data/update03.sh "$WEIGHT" "$destFileName" "
                     exit
                 fi
@@ -324,6 +329,8 @@ for ((i=${START}; i<${END}; i++));
                 echo 'sending the new best to remote servers'
                 echo
                 scp "$PICKLEFILE" ${fry}:
+                scp "$PICKLEFILE" ${owens}:
+                scp -i ${awspemfilepath} "$PICKLEFILE" ${aws}: 
                 echo
             fi
             if [ -f "TERMINATE" ]; then
@@ -338,5 +345,4 @@ for ((i=${START}; i<${END}; i++));
 
             fi
         fi
-
     done
