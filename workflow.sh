@@ -236,6 +236,7 @@ for ((i=${START}; i<${END}; i++));
                 best_system='AWS'
             fi
 
+            echo "setting the best system $best_system"
 
             echo '*********************************'
             echo "the current best distance is "$bestDistance" "
@@ -246,22 +247,28 @@ for ((i=${START}; i<${END}; i++));
                 echo "updating the database"
                 if [ "$best_system" == 'FRY' ];then
                     bestFileName=`cat "fry_job_"$i"_detail.txt" | tail -n 1 | tr '[:upper:]' '[:lower:]'`
+                    echo 'The pickle file to download name is '$bestFileName
                     destFileName="bestIFoundSoFar_$1_$i.txt"
                     bestPickleFileName='bestIFoundSoFar_fry_job_'$i'.pickle'
-                    scp ${fry}:attempt$i/''$bestFileName'.pickle' "$bestPickleFileName"
+                    echo 'downloading the best fry pickle'
+                    scp ${fry}:attempt$i/''$bestFileName'.pickle' $bestPickleFileName
                     
 
                 elif [ "$best_system" == 'OWENS' ];then
                     bestFileName=`cat "owens_job_"$i"_detail.txt" | tail -n 1 | tr '[:upper:]' '[:lower:]'`
+                    echo 'The pickle file to download name is '$bestFileName
                     destFileName="bestIFoundSoFar_$1_$i.txt"
                     bestPickleFileName='bestIFoundSoFar_owens_job_'$i'.pickle'
-                    scp ${owens}:attempt$i/''$bestFileName'.pickle' "$bestPickleFileName"
+                    echo 'downloading the best owens pickle'
+                    scp ${owens}:attempt$i/''$bestFileName'.pickle' $bestPickleFileName
 
                 elif [ "$best_system" == 'AWS' ];then
                     bestFileName=`cat "aws_job_"$i"_detail.txt" | tail -n 1 | tr '[:upper:]' '[:lower:]'`
+                    echo 'The pickle file to download name is '$bestFileName
                     destFileName="bestIFoundSoFar_$1_$i.txt"
                     bestPickleFileName='bestIFoundSoFar_aws_job_'$i'.pickle'
-                    scp -i ${awspemfilepath} ${aws}:attempt$i/'$bestFileName.pickle' "$bestPickleFileName"
+                    echo 'downloading the best aws pickle'
+                    scp -i ${awspemfilepath} ${aws}:attempt$i/'$bestFileName.pickle' $bestPickleFileName
                 fi
                 echo
                 python3 utils.py 3 "$bestPickleFileName" "$destFileName"
@@ -295,9 +302,23 @@ for ((i=${START}; i<${END}; i++));
                     # echo 'bestrun from fry is '$bestrunfromFry''
                     # echo 'current best distance is '$bestDistance''
                     # PICKLEFILE="$filename".pickle
+                    echo 'test mode detected'
+                    echo $best_system
+                    echo $bestPickleFileName
+                    echo 'trying to download files'
+                    if [ "$best_system" == 'FRY' ];then
+                        echo 'downloading best pickle from fry'
+                        scp ${fry}:attempt$i/''$bestFileName'.pickle' $bestPickleFileName
+                    elif [ "$best_system" == 'OWENS' ];then
+                        echo 'downloading best pickle from owens'
+                        scp ${owens}:attempt$i/''$bestFileName'.pickle' $bestPickleFileName
+                    elif [ "$best_system" == 'AWS' ];then
+                        echo 'downloading best pickle from aws'
+                        scp -i ${awspemfilepath} ${aws}:attempt$i/'$bestFileName.pickle' $bestPickleFileName
+                    fi
                     PICKLEFILE="$bestPickleFileName"
                     
-                    echo 'sending the new best to remote servers'
+                    echo 'sending the new best to remote servers for testing'
                     echo
                     scp "$PICKLEFILE" ${fry}:
                     scp "$PICKLEFILE" ${owens}:
@@ -312,26 +333,56 @@ for ((i=${START}; i<${END}; i++));
                
                                 
             else
-                echo '********************'
-                echo 'TRYING AGAIN'
-                echo 'getting current best weight details'
-                echo
-                distance=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$WEIGHT".txt | tail -n 5 | head -n 1"`
-                echo
-                path=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$WEIGHT".txt | tail -n 5 | head -n 2 | tail -n 1"`
-                echo
-                filename="database0"$i""
-                python3 utils.py 2 "$distance" "$path" "$filename"
-                echo 'bestrun from fry is '$bestrunfromFry''
-                echo 'current best distance is '$bestDistance''
-                PICKLEFILE="$filename".pickle
-                
+                if [ "$6" == 1 ]; then
+                    if [ "$best_system" == 'FRY' ];then
+                    bestFileName=`cat "fry_job_"$i"_detail.txt" | tail -n 1 | tr '[:upper:]' '[:lower:]'`
+                    echo 'The pickle file to download name is'$bestFileName
+                    destFileName="bestIFoundSoFar_$1_$i.txt"
+                    bestPickleFileName='bestIFoundSoFar_fry_job_'$i'.pickle'
+                    echo 'downloading the best fry pickle'
+                    scp ${fry}:attempt$i/''$bestFileName'.pickle' $bestPickleFileName
+                    
+
+                    elif [ "$best_system" == 'OWENS' ];then
+                        bestFileName=`cat "owens_job_"$i"_detail.txt" | tail -n 1 | tr '[:upper:]' '[:lower:]'`
+                        echo 'The pickle file to download name is'$bestFileName
+                        destFileName="bestIFoundSoFar_$1_$i.txt"
+                        bestPickleFileName='bestIFoundSoFar_owens_job_'$i'.pickle'
+                        echo 'downloading the best owens pickle'
+                        scp ${owens}:attempt$i/''$bestFileName'.pickle' $bestPickleFileName
+
+                    elif [ "$best_system" == 'AWS' ];then
+                        bestFileName=`cat "aws_job_"$i"_detail.txt" | tail -n 1 | tr '[:upper:]' '[:lower:]'`
+                        echo 'The pickle file to download name is'$bestFileName
+                        destFileName="bestIFoundSoFar_$1_$i.txt"
+                        bestPickleFileName='bestIFoundSoFar_aws_job_'$i'.pickle'
+                        echo 'downloading the best aws pickle'
+                        scp -i ${awspemfilepath} ${aws}:attempt$i/'$bestFileName.pickle' $bestPickleFileName
+                    fi
+                    PICKLEFILE="$bestPickleFileName"
+                else
+
+                    echo '********************'
+                    echo 'Setting up the server with new best distance pickle file for next batch run'
+                    echo 'getting current best weight details'
+                    echo
+                    distance=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$WEIGHT".txt | tail -n 5 | head -n 1"`
+                    echo
+                    path=`ssh ${owens} "cat ~nehrbajo/proj03data/database0"$WEIGHT".txt | tail -n 5 | head -n 2 | tail -n 1"`
+                    echo
+                    filename="database0"$i""
+                    python3 utils.py 2 "$distance" "$path" "$filename"
+                    echo 'The best from all three was '$overallRunBest''
+                    echo 'but current POSTED best distance is '$bestDistance''
+                    PICKLEFILE="$filename".pickle
+                fi
                 echo 'sending the new best to remote servers'
                 echo
                 scp "$PICKLEFILE" ${fry}:
                 scp "$PICKLEFILE" ${owens}:
                 scp -i ${awspemfilepath} "$PICKLEFILE" ${aws}: 
                 echo
+                
             fi
             if [ -f "TERMINATE" ]; then
                 echo 'ITERNATION_STATE':$(($i+1)) >> SAVEDSTATE

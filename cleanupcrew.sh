@@ -1,9 +1,14 @@
-rm job_*
-rm fryJob*
+rm aws_job_*
+rm awsJob*
+rm bestIFoundSoFar_*
 rm database0*
-rm bestIFoundSoFar*.txt
+rm fry_job_*
+rm fryJob*
+rm owens_job_*
+rm owensJob*
 rm -r ../attempt*
-rm ../database0*
+rm ../database*
+rm ../initialGuess*
 rm ../fryJob*
-rm ../initial*
 rm ../results*
+ls -l
